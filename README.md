@@ -35,9 +35,11 @@ noise — the actual day-to-day of a SOC analyst.
 - [x] Splunk Enterprise (free tier) installed on macOS host
 - [x] Splunk Universal Forwarder installed on `victim01`, shipping auth.log/auditd/syslog
       to Splunk on the macOS host (port 9997) — confirmed live, 1,781+ events indexed
-- [ ] Atomic Red Team installed on the Ubuntu VM
-- [ ] First attack technique run + detected
-- [ ] Detection library (10+ techniques, MITRE-mapped)
+- [x] First attack technique run + detected — T1110.001 SSH brute force via `hydra`
+      (Atomic Red Team's documented test, run natively rather than through the
+      PowerShell wrapper), 7 failed logins generated and caught by a 5-minute
+      threshold detection
+- [ ] Detection library (10+ techniques, MITRE-mapped) — 1 of 8 planned done
 - [ ] Dashboards + screenshots
 - [ ] Full writeup
 
