@@ -22,6 +22,13 @@ but exactly who got created and with what.
 Every `useradd` invocation on the box, full stop. Against the simulated attack:
 one row, `new_username=svc_backup`, `uid=1002`.
 
+Running this against the real lab data turned up a second row for free:
+`splunkfwd`, UID 1001 — the account the Splunk Universal Forwarder itself created
+during install, hours before the simulated attack. Real proof the detection's rare-event
+design works both directions: it caught the attack, and it caught the one legitimate
+account-creation event already sitting in this VM's history, without needing a single
+tuning pass.
+
 ## Why this one doesn't need a threshold
 
 Unlike the brute-force detection, this isn't a "5+ in 5 minutes" pattern — it's a
