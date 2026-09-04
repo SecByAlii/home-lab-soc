@@ -39,7 +39,8 @@ noise — the actual day-to-day of a SOC analyst.
       (Atomic Red Team's documented test, run natively rather than through the
       PowerShell wrapper), 7 failed logins generated and caught by a 5-minute
       threshold detection
-- [ ] Detection library (10+ techniques, MITRE-mapped) — 1 of 8 planned done
+- [ ] Detection library (10+ techniques, MITRE-mapped) — 2 of 8 planned done
+      (T1110.001 SSH brute force, T1136.001 new local account)
 - [ ] Dashboards + screenshots
 - [ ] Full writeup
 
