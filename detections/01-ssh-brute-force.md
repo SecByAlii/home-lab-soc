@@ -25,6 +25,8 @@ in a tight burst — the actual `hydra` behavior — trips it immediately.
 Against the simulated attack: 7 failed attempts from `127.0.0.1` inside about 30
 seconds, all in one 5-minute bin → `failed_attempts=7`, over the threshold of 5.
 
+![Splunk catching the SSH brute force](../screenshots/01-ssh-brute-force-splunk.png)
+
 ## Follow-up: did it succeed?
 
 A brute force that lands is worse than one that doesn't. Second search, run against any
