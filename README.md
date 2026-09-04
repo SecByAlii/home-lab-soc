@@ -17,7 +17,7 @@ noise — the actual day-to-day of a SOC analyst.
 
 ```
 ┌─────────────────────┐         Splunk Universal Forwarder        ┌──────────────────────┐
-│   Ubuntu 22.04 VM    │ ──────────────────────────────────────►  │   macOS host          │
+│   Ubuntu 26.04 VM    │ ──────────────────────────────────────►  │   macOS host          │
 │   (UTM, ARM-native)  │         auth.log, auditd, syslog          │   Splunk Enterprise    │
 │                      │                                            │   Free (500MB/day)     │
 │  Atomic Red Team     │                                            │                        │
@@ -30,7 +30,8 @@ noise — the actual day-to-day of a SOC analyst.
 
 - [x] Host machine confirmed (Apple Silicon, 24GB RAM, 650GB free)
 - [x] UTM installed (ARM-native hypervisor for the victim VM)
-- [ ] Ubuntu 22.04 VM created in UTM
+- [x] Ubuntu Server 26.04 LTS VM (`victim01`) created in UTM
+- [x] SSH key-based access from macOS host to `victim01` configured
 - [ ] Splunk Enterprise (free tier) installed on macOS host
 - [ ] Splunk Universal Forwarder installed on the Ubuntu VM, shipping auth.log/auditd
 - [ ] Atomic Red Team installed on the Ubuntu VM
