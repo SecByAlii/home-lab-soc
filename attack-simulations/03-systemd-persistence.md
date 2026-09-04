@@ -40,6 +40,8 @@ systemd[1]: Starting sysupdate-check.service - System Update Checker...
 systemd[1]: Finished sysupdate-check.service - System Update Checker.
 ```
 
+![Full attack chain in auth.log/syslog: unit file written, enabled, started](../screenshots/03-systemd-persistence-raw.png)
+
 ## Detection
 
 See `detections/03-new-systemd-service.md`.
