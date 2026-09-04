@@ -32,8 +32,9 @@ noise — the actual day-to-day of a SOC analyst.
 - [x] UTM installed (ARM-native hypervisor for the victim VM)
 - [x] Ubuntu Server 26.04 LTS VM (`victim01`) created in UTM
 - [x] SSH key-based access from macOS host to `victim01` configured
-- [ ] Splunk Enterprise (free tier) installed on macOS host
-- [ ] Splunk Universal Forwarder installed on the Ubuntu VM, shipping auth.log/auditd
+- [x] Splunk Enterprise (free tier) installed on macOS host
+- [x] Splunk Universal Forwarder installed on `victim01`, shipping auth.log/auditd/syslog
+      to Splunk on the macOS host (port 9997) — confirmed live, 1,781+ events indexed
 - [ ] Atomic Red Team installed on the Ubuntu VM
 - [ ] First attack technique run + detected
 - [ ] Detection library (10+ techniques, MITRE-mapped)
