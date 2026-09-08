@@ -39,9 +39,12 @@ noise — the actual day-to-day of a SOC analyst.
       (Atomic Red Team's documented test, run natively rather than through the
       PowerShell wrapper), 7 failed logins generated and caught by a 5-minute
       threshold detection
-- [ ] Detection library (10+ techniques, MITRE-mapped) — 4 of 8 planned done
+- [x] auditd instrumentation started — rule sets added per technique under
+      `detections/audit-rules/`, loaded on `victim01` (see `setup/03-auditd-instrumentation.md`)
+- [ ] Detection library (10+ techniques, MITRE-mapped) — 5 of 8 planned done
       (T1110.001 SSH brute force, T1136.001 new local account, T1543.002 systemd
-      persistence, T1078 valid accounts — successful login after a failed-password burst)
+      persistence, T1078 valid accounts — successful login after a failed-password burst,
+      T1053.003 cron persistence)
 - [ ] Dashboards + screenshots
 - [ ] Full writeup
 
