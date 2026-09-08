@@ -201,24 +201,61 @@ them without digging:
 - **Allowlists are snapshots.** `known_services.csv` (detection 3) and the implicit
   known-good sets elsewhere are point-in-time captures of one hand-built box. They work
   here because nothing else changed between snapshot and attack.
-- **Detections are single-signal.** Each fires on one observation. The obvious next step
-  is correlating them — a brute force *then* a new account *then* a cron job from the
-  same session is an incident, not three separate alerts.
+- **Correlation inherits every per-detection false positive.** The session layer (below)
+  is a triage aid, not a verdict — a busy admin session scores `HIGH` on it. And its
+  90-minute session window is a guess that a patient attacker defeats by spacing actions
+  out; a rolling risk score with decay is the real answer.
 
 ---
 
+## Correlation — from detections to incidents
+
+The eight detections are single-signal: each fires on one observation, independently.
+Three brute-force alerts and a new-account alert from one login session aren't four
+things to triage — they're one intrusion. A correlation layer rolls them up.
+
+Everything runs through two macros (`dashboards/macros.conf`):
+
+- **`` `soc_detections` ``** normalises all eight detections to one row each — `_time`,
+  `sig`, `mitre`, `tactic`, `actor`, `detail`. The dashboard's every panel is built on
+  this.
+- **`` `soc_incidents` ``** collapses that into per-actor sessions
+  (`transaction actor maxpause=90m`) and scores each `5·detections + 20·distinct
+  tactics`, with severity from the tactic count.
+
+Two design decisions did the real work:
+
+- **Normalising the actor across log sources.** `auth.log` names a brute force by source
+  IP; `auditd` names everything else by login user (`AUID`). Left alone, "`127.0.0.1`
+  guessed the password" and "`analyst` then created an account" never join. Re-keying the
+  brute-force detection on the *targeted account* puts the guessing and the
+  post-compromise activity in the same incident.
+- **Scoring on ATT&CK breadth, not volume.** A session that touches Persistence *and*
+  Defense Evasion *and* Privilege Escalation is worse than one that fired the same rule
+  five times. Distinct tactics is the multiplier.
+
+Against the lab data the eight raw detections collapse into two incidents:
+
+| Session | Actor | Severity | Risk | Detections | Tactics |
+|---|---|---|---|---|---|
+| 2026-09-08 11:04 (+42m) | analyst | **CRITICAL** | 105 | 5 | 4 |
+| 2026-09-04 15:10 (+86m) | analyst | **HIGH** | 55 | 3 | 2 |
+
+Full design notes and false positives: `detections/session-correlation.md`.
+
 ## Dashboard
 
-All eight detections are wired into one Splunk view (`dashboards/soc_overview.xml`,
-screenshot in the README): the simulated intrusion as a chronological timeline, each row
-ATT&CK-mapped, with single-value coverage counts and a by-tactic breakdown. It runs the
-real detection logic — one unioned base search, one branch per detection — so the
-dashboard is the detection library, not a separate reporting layer.
+One Splunk view (`dashboards/soc_overview.xml`, screenshot in the README): **sessions of
+concern** at the top from `` `soc_incidents` ``, then the simulated intrusion as a
+chronological ATT&CK-mapped timeline, coverage counters, and a by-tactic breakdown.
+Every panel runs the real macros — the dashboard *is* the detection library and its
+correlation layer, not a separate reporting build.
 
 ## What's next
 
-- Correlate the existing detections into session-level incident logic — a brute force
-  *then* a new account *then* a cron job from one session is an incident, not three
-  alerts.
+- Replace the `transaction` session window with a rolling per-actor risk score with
+  decay — defeats the "space actions out" evasion a fixed `maxpause` can't.
+- Follow cross-actor pivots (brute-force `analyst` → `su` to another account) with a
+  login-chain graph rather than treating them as separate incidents.
 - Add discovery / defense-evasion breadth toward a 10+ technique library.
 - Replace snapshot allowlists with first-seen searches over a rolling window.
