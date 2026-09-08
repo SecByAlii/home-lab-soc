@@ -6,9 +6,9 @@ against the **real logs the attack produced**. Every detection is mapped to MITR
 and ships with the false positives it will produce and an honest note on what it doesn't
 catch.
 
-**Status:** first-pass build complete — 8 techniques, 8 detections, a
-[writeup](WRITEUP.md), and a dashboard. Extending the library toward broader ATT&CK
-coverage is ongoing.
+**Status:** first-pass build complete — 8 techniques, 8 detections, a session-level
+correlation layer, a [writeup](WRITEUP.md), and a dashboard. Extending the library
+toward broader ATT&CK coverage is ongoing.
 
 ## Why this exists
 
@@ -24,10 +24,13 @@ Full narrative, method, and three detailed detection walk-throughs: **[WRITEUP.m
 
 ![Home Lab SOC — Detection Overview dashboard](screenshots/dashboard-detection-overview.png)
 
-Every detection wired into one Splunk view: the simulated intrusion in chronological
-order, each row MITRE ATT&CK-mapped, plus coverage counts and a by-tactic breakdown. It
-runs the real detection logic — one unioned search, one branch per detection — not a
-separate reporting layer. Source XML: [`dashboards/soc_overview.xml`](dashboards/soc_overview.xml).
+Every detection wired into one Splunk view: **sessions of concern** at the top
+(detections correlated into scored incidents), then the simulated intrusion in
+chronological order, each row MITRE ATT&CK-mapped, plus coverage counts and a by-tactic
+breakdown. It runs the real detection logic — the `` `soc_detections` `` /
+`` `soc_incidents` `` macros in [`dashboards/macros.conf`](dashboards/macros.conf) — not
+a separate reporting layer. Source XML:
+[`dashboards/soc_overview.xml`](dashboards/soc_overview.xml).
 
 ## Detection library
 
@@ -49,6 +52,16 @@ that's decided.
 Each detection file carries the SPL, the result against the real simulated attack, the
 false positives to expect, and an "honest gap" section naming what the lab version
 doesn't cover.
+
+### Correlation layer
+
+The eight detections are single-signal — each fires independently. A
+[correlation layer](detections/session-correlation.md) rolls them up: it normalises
+every detection to one row (`` `soc_detections` ``), groups by actor into 90-minute
+sessions, and scores each session `5·detections + 20·distinct ATT&CK tactics`
+(`` `soc_incidents` ``). Against the lab data the eight raw detections collapse into two
+scored incidents — a **CRITICAL** five-detection chain and a **HIGH** three-detection
+one — shown as the top panel of the dashboard.
 
 ## Architecture
 
@@ -86,9 +99,9 @@ record of the other clears in the same run; the forwarded copy is the one that s
 
 - `setup/` — exact steps to reproduce the lab, in build order
 - `attack-simulations/` — each technique run, why it was picked, and the log evidence it produced
-- `detections/` — one file per detection (SPL, result, false positives, honest gap);
-  `detections/audit-rules/` holds the auditd rule sets
-- `dashboards/` — Splunk dashboard source XML
+- `detections/` — one file per detection (SPL, result, false positives, honest gap),
+  plus `session-correlation.md`; `detections/audit-rules/` holds the auditd rule sets
+- `dashboards/` — Splunk dashboard source XML and the search macros it runs on
 - `screenshots/` — Splunk catching each simulated attack, plus the dashboard
 - `WRITEUP.md` — the portfolio writeup
 

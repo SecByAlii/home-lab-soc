@@ -1,46 +1,35 @@
 <dashboard theme="dark" version="1.1">
   <label>Home Lab SOC - Detection Overview</label>
-  <description>Eight MITRE ATT&amp;CK techniques run against victim01, each caught by a purpose-built Splunk detection. github.com/SecByAlii/home-lab-soc</description>
+  <description>Eight MITRE ATT&amp;CK techniques run against victim01, each caught by a purpose-built Splunk detection, then correlated into session-level incidents. github.com/SecByAlii/home-lab-soc</description>
+
   <search id="base">
-    <query>
-index=main sourcetype=linux_secure "Failed password"
-| rex "Failed password for (invalid user )?(?&lt;u&gt;\S+) from (?&lt;src&gt;\S+)"
-| bin _time span=5m | stats count as n earliest(_time) as et by src _time
-| where n&gt;=5 | eval _time=et, detection="SSH brute force", mitre="T1110.001", tactic="Credential Access", actor=src, detail=n." failed SSH logins in 5 min"
-| fields _time detection mitre tactic actor detail
-| append [ search index=main sourcetype=linux_secure "new user:" "svc_backup"
-    | eval detection="New local account", mitre="T1136.001", tactic="Persistence", actor="analyst", detail="useradd svc_backup"
-    | fields _time detection mitre tactic actor detail ]
-| append [ search index=main sourcetype=syslog "systemd[1]: Starting" "sysupdate-check.service"
-    | stats min(_time) as et | eval _time=et, detection="Unknown systemd service", mitre="T1543.002", tactic="Persistence", actor="analyst", detail="sysupdate-check.service not in known-good baseline"
-    | fields _time detection mitre tactic actor detail ]
-| append [ search index=main sourcetype=linux_secure "password for " "127.0.0.1"
-    | rex "(?&lt;r&gt;Failed|Accepted) password for (?&lt;acct&gt;\S+) from (?&lt;src&gt;\S+)"
-    | eval et=_time | bin _time span=10m
-    | stats count(eval(r=="Failed")) as fb count(eval(r=="Accepted")) as ok values(acct) as acct min(et) as et by src _time
-    | where fb&gt;=3 AND ok&gt;=1 | eval _time=et, detection="Valid-account login after brute force", mitre="T1078", tactic="Defense Evasion", actor=acct, detail=fb." fails then a success from ".src
-    | fields _time detection mitre tactic actor detail ]
-| append [ search index=main sourcetype=linux_audit (key=cron_persist OR key=cron_exec) type=SYSCALL
-    | stats min(_time) as et values(comm) as comm by AUID | eval _time=et, detection="Cron persistence", mitre="T1053.003", tactic="Persistence", actor=AUID, detail="cron written via ".mvjoin(comm,", ")
-    | fields _time detection mitre tactic actor detail ]
-| append [ search index=main sourcetype=linux_audit key=log_tamper type=SYSCALL comm IN ("truncate","rm","dd","shred","bash")
-    | stats min(_time) as et values(comm) as comm by AUID | eval _time=et, detection="System log cleared", mitre="T1070.002", tactic="Defense Evasion", actor=AUID, detail="truncate / rm on log files via ".mvjoin(comm,", ")
-    | fields _time detection mitre tactic actor detail ]
-| append [ search index=main sourcetype=linux_audit type=EXECVE ("nmap" OR ("ip" AND "neigh"))
-    | eval cmd=mvjoin(mvappend(a0,a1,a2,a3,a4)," ")
-    | search cmd="nmap -sn*" OR cmd="nmap -p*" OR cmd="ip neigh*"
-    | stats min(_time) as et values(cmd) as cmd | eval _time=et, detection="Network scan / discovery", mitre="T1018", tactic="Discovery", actor="analyst", detail=mvcount(cmd)." recon commands (nmap sweep, port scan, ARP)"
-    | fields _time detection mitre tactic actor detail ]
-| append [ search index=main sourcetype=linux_audit key=perm_mod type=SYSCALL
-    | rex "\ba2=(?&lt;mh&gt;[0-9a-f]+)" | eval mo=tonumber(mh,16)
-    | where floor(mo/2048)%2==1 OR floor(mo/1024)%2==1
-    | stats min(_time) as et by AUID | eval _time=et, detection="Setuid bit set on binary", mitre="T1548.001", tactic="Privilege Escalation", actor=AUID, detail="chmod set the setuid bit (mode 04755)"
-    | fields _time detection mitre tactic actor detail ]
-| table _time detection mitre tactic actor detail
-    </query>
+    <query>`soc_detections`</query>
     <earliest>-30d@d</earliest>
     <latest>now</latest>
   </search>
+
+  <row>
+    <panel>
+      <title>Sessions of concern — detections correlated by actor into incidents (risk = 5·detections + 20·tactics)</title>
+      <table>
+        <search>
+          <query>`soc_incidents` | eval Window=strftime(first_seen,"%Y-%m-%d %H:%M")." (+".span_min."m)" | rename actor as Actor, severity as Severity, risk_score as Risk, detections as "Detections", tactics as "ATT&amp;CK tactics", sig as "Detections in this session" | table Window Actor Severity Risk "Detections" "ATT&amp;CK tactics" "Detections in this session"</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+        <option name="wrap">true</option>
+        <format type="color" field="Severity">
+          <colorPalette type="map">{"CRITICAL":#B50101,"HIGH":#D6563C,"LOW":#F1813F}</colorPalette>
+        </format>
+        <format type="color" field="Risk">
+          <colorPalette type="minMidMax" maxColor="#B50101" midColor="#D6563C" minColor="#F1813F"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+      </table>
+    </panel>
+  </row>
 
   <row>
     <panel>
@@ -65,11 +54,13 @@ index=main sourcetype=linux_secure "Failed password"
     </panel>
     <panel>
       <single>
-        <title>ATT&amp;CK tactics spanned</title>
-        <search base="base"><query>| stats dc(tactic)</query></search>
+        <title>Correlated incidents</title>
+        <search><query>`soc_incidents` | stats count</query>
+          <earliest>-30d@d</earliest><latest>now</latest>
+        </search>
         <option name="drilldown">none</option>
         <option name="colorBy">value</option>
-        <option name="rangeColors">["0x006d9c","0x006d9c"]</option>
+        <option name="rangeColors">["0xd6563c","0xd6563c"]</option>
         <option name="rangeValues">[0]</option>
       </single>
     </panel>
@@ -80,7 +71,7 @@ index=main sourcetype=linux_secure "Failed password"
       <title>Detection timeline — the simulated intrusion, in order</title>
       <table>
         <search base="base">
-          <query>| sort _time | eval _time=strftime(_time,"%Y-%m-%d %H:%M:%S") | rename _time as "Time", detection as "Detection", mitre as "MITRE ID", tactic as "ATT&amp;CK Tactic", actor as "Actor", detail as "What fired it"</query>
+          <query>| sort _time | eval _time=strftime(_time,"%Y-%m-%d %H:%M:%S") | rename _time as "Time", detection as "Detection", mitre as "MITRE ID", tactic as "ATT&amp;CK Tactic", actor as "Actor", detail as "What fired it" | table "Time" "Detection" "MITRE ID" "ATT&amp;CK Tactic" "Actor" "What fired it"</query>
         </search>
         <option name="drilldown">none</option>
         <option name="count">20</option>
