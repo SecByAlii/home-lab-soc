@@ -41,10 +41,10 @@ noise — the actual day-to-day of a SOC analyst.
       threshold detection
 - [x] auditd instrumentation started — rule sets added per technique under
       `detections/audit-rules/`, loaded on `victim01` (see `setup/03-auditd-instrumentation.md`)
-- [ ] Detection library (10+ techniques, MITRE-mapped) — 5 of 8 planned done
+- [ ] Detection library (10+ techniques, MITRE-mapped) — 6 of 8 planned done
       (T1110.001 SSH brute force, T1136.001 new local account, T1543.002 systemd
       persistence, T1078 valid accounts — successful login after a failed-password burst,
-      T1053.003 cron persistence)
+      T1053.003 cron persistence, T1070.002 system-log truncation/deletion)
 - [ ] Dashboards + screenshots
 - [ ] Full writeup
 
