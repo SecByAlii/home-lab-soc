@@ -25,6 +25,7 @@ reboot. `auditctl -s` shows `enabled 1` and the current backlog.
 | `50-cron.rules` | `cron_persist`, `cron_exec` | Detection 5 — T1053.003 Cron | 2026-09-08 |
 | `60-logclear.rules` | `log_tamper` | Detection 6 — T1070.002 Clear Logs | 2026-09-08 |
 | `70-discovery.rules` | `proc_exec` | Detection 7 — T1018 Remote Discovery (all interactive execve) | 2026-09-08 |
+| `80-privesc.rules` | `perm_mod` | Detection 8 — T1548.001 Setuid/Setgid (fchmod/fchmodat) | 2026-09-08 |
 
 ## Notes / gotchas
 
@@ -46,6 +47,13 @@ reboot. `auditctl -s` shows `enabled 1` and the current backlog.
   the command with `mvjoin(mvappend(a0,a1,…)," ")`, and guard it with
   `if(type=="EXECVE", …)` so the `SYSCALL` record's hex `a0`–`a3` registers don't get
   mixed in.
+- **aarch64 syscall names differ from x86.** There is no bare `chmod` / `chown` syscall
+  — only `fchmodat` / `fchownat` (and `fchmod`). An audit rule with `-S chmod` fails to
+  load on ARM (`error in line N of audit.rules`). Use `fchmod,fchmodat`.
+- **`/tmp` and `/dev/shm` are mounted `nosuid`** on this Ubuntu image (tmpfs), so a
+  setuid binary dropped there won't escalate on exec. `/var/tmp`, `/home`, `/opt` are on
+  `/` with no `nosuid` — that's where the T1548.001 test has to place the binary to
+  actually gain euid=0.
 - Rules are **not** set immutable (`-e 2`) on this lab box, so `augenrules --load` can
   reload freely. A hardened host would lock them and require a reboot to change.
 - **Truncating `/var/log/audit/audit.log` while auditd runs doesn't stop auditd** — it
