@@ -7,7 +7,7 @@ schedule with no further attacker interaction. Two of the documented placements 
 here to cover both common spots:
 
 1. a file in `/etc/cron.d/` (system-wide, runs as whatever user the line names)
-2. a line in the invoking user's own crontab (`crontab -`)
+2. a line piped into `crontab -` (run under `sudo`, so it lands in root's crontab)
 
 This is the schedule-based sibling of attack 3 (systemd persistence). Same goal —
 code that re-runs itself — different mechanism, different log location, so it needs its
@@ -36,14 +36,17 @@ housekeeping job. The payload line is the tell: a root cron entry that pulls a s
 over HTTP and pipes it to a shell every 5 minutes. `192.0.2.10` is in the TEST-NET-1
 documentation range, so nothing actually leaves the box.
 
-**Vector 2 — user crontab:**
+**Vector 2 — `crontab -` (root's crontab):**
 
 ```
 echo '*/10 * * * * /tmp/.hb' | sudo crontab -
 ```
 
 A dot-prefixed path (`/tmp/.hb`) to keep the target out of a plain `ls`, installed via
-`crontab -` reading from stdin.
+`crontab -` reading from stdin. Run under `sudo`, so `crontab` operates on its effective
+user — the entry lands in **root's** crontab (`/var/spool/cron/crontabs/root`), not
+`analyst`'s. The audit `AUID` still resolves to `analyst` regardless (see Result), which
+is exactly the attribution the detection leans on.
 
 ## Result
 
@@ -51,7 +54,7 @@ Against the loaded audit rules, both vectors register immediately:
 
 - **cron.d drop:** a `PATH` record — `name="/etc/cron.d/pkg-sync"`, `nametype=CREATE` —
   plus a `SYSCALL` record, `comm="tee"`, `key="cron_persist"`.
-- **user crontab:** `SYSCALL` records `comm="crontab"` with `key="cron_exec"` (the
+- **root's crontab:** `SYSCALL` records `comm="crontab"` with `key="cron_exec"` (the
   binary running) and `key="cron_persist"` (its `openat`/`fchmod`/`renameat` on
   `/var/spool/cron/crontabs/`).
 

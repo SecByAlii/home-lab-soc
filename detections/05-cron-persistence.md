@@ -33,10 +33,10 @@ Against the simulated attack — three rows:
 | cron_persist | crontab | analyst | fchmod, openat, renameat | /usr/bin/crontab |
 | cron_persist | tee | analyst | openat | /usr/lib/cargo/bin/coreutils/tee |
 
-The `tee` row is the `/etc/cron.d/` drop; the two `crontab` rows are the user-crontab
-write. A normal `crontab -l` (just listing) would show only `cron_exec` with an `execve`
-and no `cron_persist` — the write keys are what separate "looked at cron" from "changed
-cron".
+The `tee` row is the `/etc/cron.d/` drop; the two `crontab` rows are the `sudo crontab -`
+write (which lands in root's crontab). A normal `crontab -l` (just listing) would show
+only `cron_exec` with an `execve` and no `cron_persist` — the write keys are what
+separate "looked at cron" from "changed cron".
 
 ![Search A — cron activity caught in Splunk](../screenshots/05-cron-persistence-splunk.png)
 
