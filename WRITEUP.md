@@ -207,9 +207,18 @@ them without digging:
 
 ---
 
+## Dashboard
+
+All eight detections are wired into one Splunk view (`dashboards/soc_overview.xml`,
+screenshot in the README): the simulated intrusion as a chronological timeline, each row
+ATT&CK-mapped, with single-value coverage counts and a by-tactic breakdown. It runs the
+real detection logic — one unioned base search, one branch per detection — so the
+dashboard is the detection library, not a separate reporting layer.
+
 ## What's next
 
-- Correlate the existing detections into session-level incident logic.
+- Correlate the existing detections into session-level incident logic — a brute force
+  *then* a new account *then* a cron job from one session is an incident, not three
+  alerts.
 - Add discovery / defense-evasion breadth toward a 10+ technique library.
-- Splunk dashboards over the detection set, with screenshots here.
 - Replace snapshot allowlists with first-seen searches over a rolling window.

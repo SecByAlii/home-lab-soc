@@ -13,6 +13,14 @@ Most "I did a CTF" portfolio pieces show you can follow a walkthrough. This one 
 other half of the job: watching logs, writing detections, and telling true positives from
 noise — the actual day-to-day of a SOC analyst.
 
+## Dashboard
+
+![Home Lab SOC — Detection Overview dashboard](screenshots/dashboard-detection-overview.png)
+
+Every detection wired into one Splunk view: the simulated intrusion in chronological
+order, each row MITRE ATT&CK-mapped, plus coverage by tactic. Source XML in
+`dashboards/soc_overview.xml`.
+
 ## Architecture
 
 ```
@@ -54,17 +62,20 @@ noise — the actual day-to-day of a SOC analyst.
       - T1548.001 setuid/setgid abuse
 - [x] Full writeup — `WRITEUP.md` (premise, architecture, the detection loop, three
       deep-dives, what it demonstrates, known limitations)
+- [x] Dashboard — `dashboards/soc_overview.xml`, a single Splunk view of all eight
+      detections firing across the simulated intrusion, mapped to ATT&CK tactic
 - [ ] Extend the library toward 10+ techniques (more discovery / defense-evasion breadth)
-- [ ] Dashboards + screenshots
 
 ## Repo layout
 
 - `setup/` — exact steps to reproduce this lab, in build order
 - `attack-simulations/` — which Atomic Red Team techniques were run, and why each was picked
 - `detections/` — one file per detection, each with the SPL query, the MITRE ATT&CK technique
-  it maps to, and notes on false positives
-- `screenshots/` — Splunk catching each simulated attack
-- `WRITEUP.md` — the polished portfolio piece once the lab is complete
+  it maps to, and notes on false positives; `detections/audit-rules/` holds the auditd
+  rule sets, one per technique that needs one
+- `dashboards/` — Splunk dashboard source XML
+- `screenshots/` — Splunk catching each simulated attack, plus the dashboard
+- `WRITEUP.md` — the portfolio writeup: premise, method, three detection deep-dives, limits
 
 ## Skills demonstrated
 
