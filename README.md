@@ -52,9 +52,10 @@ noise — the actual day-to-day of a SOC analyst.
       - T1070.002 system-log truncation/deletion
       - T1018 remote system discovery / network scanning
       - T1548.001 setuid/setgid abuse
+- [x] Full writeup — `WRITEUP.md` (premise, architecture, the detection loop, three
+      deep-dives, what it demonstrates, known limitations)
 - [ ] Extend the library toward 10+ techniques (more discovery / defense-evasion breadth)
 - [ ] Dashboards + screenshots
-- [ ] Full writeup
 
 ## Repo layout
 
