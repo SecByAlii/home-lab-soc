@@ -1,0 +1,9 @@
+## T1018 — Remote System Discovery (also: general process-execution visibility)
+## Load on victim01 with:
+##   sudo cp 70-discovery.rules /etc/audit/rules.d/ && sudo augenrules --load
+##
+## Logs every execve by an interactive user (auid set, not the daemon sentinel). Recon
+## commands are ordinary binaries (nmap, ip, arp) run with revealing arguments, not
+## special syscalls, so the rule is deliberately broad and the detection does the
+## identifying. This same feed backs any later exec-based detection (e.g. T1548).
+-a always,exit -F arch=b64 -S execve -F auid>=1000 -F auid!=-1 -F key=proc_exec

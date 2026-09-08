@@ -24,6 +24,7 @@ reboot. `auditctl -s` shows `enabled 1` and the current backlog.
 |---|---|---|---|
 | `50-cron.rules` | `cron_persist`, `cron_exec` | Detection 5 — T1053.003 Cron | 2026-09-08 |
 | `60-logclear.rules` | `log_tamper` | Detection 6 — T1070.002 Clear Logs | 2026-09-08 |
+| `70-discovery.rules` | `proc_exec` | Detection 7 — T1018 Remote Discovery (all interactive execve) | 2026-09-08 |
 
 ## Notes / gotchas
 
@@ -36,9 +37,15 @@ reboot. `auditctl -s` shows `enabled 1` and the current backlog.
   (`type=SYSCALL` only, or `NOT op=add_rule`) so instrumenting the box doesn't read as
   an attack.
 - **auditd records index as one Splunk event each**, not merged — a `SYSCALL` record and
-  its sibling `PATH` record are separate events sharing an `audit()` timestamp+ID.
-  Detection logic that needs both the syscall and the filename either searches each
-  record type separately or stitches them on that ID.
+  its sibling `PATH` / `EXECVE` record are separate events sharing an `audit()`
+  timestamp+ID. Detection logic that needs fields from more than one record type either
+  searches each separately or stitches them on that ID (`rex "audit\((?<aevent>[0-9.]+:[0-9]+)\)"`
+  then `stats … by aevent`).
+- **`EXECVE` carries the argv as `a0`, `a1`, `a2`… — one field per token, no combined
+  command string, and no `auid`/`comm`** (those are on the sibling `SYSCALL`). Rebuild
+  the command with `mvjoin(mvappend(a0,a1,…)," ")`, and guard it with
+  `if(type=="EXECVE", …)` so the `SYSCALL` record's hex `a0`–`a3` registers don't get
+  mixed in.
 - Rules are **not** set immutable (`-e 2`) on this lab box, so `augenrules --load` can
   reload freely. A hardened host would lock them and require a reboot to change.
 - **Truncating `/var/log/audit/audit.log` while auditd runs doesn't stop auditd** — it
