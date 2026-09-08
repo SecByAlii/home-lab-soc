@@ -1,8 +1,5 @@
 # Home Lab SOC — Detection Engineering Writeup
 
-> **Draft — ~75%.** Structure and substance are here; wording and emphasis are still
-> Allison's to shape.
-
 A single-analyst detection lab: a Splunk SIEM watching a purpose-built Linux victim
 host, eight attacker techniques run against it, and a detection written and tuned for
 each one against the **real logs the attack produced** — not against documentation, not
