@@ -1,0 +1,15 @@
+## T1070.002 — Indicator Removal: Clear Linux Logs
+## Instrumentation for detection 6. Load on victim01 with:
+##   sudo cp 60-logclear.rules /etc/audit/rules.d/ && sudo augenrules --load
+##
+## Watches the log files an attacker truncates or deletes to cover tracks, plus a
+## broad syscall rule over /var/log for anything the named-file watches miss.
+##
+## In this lab auth.log / syslog carry little background write traffic, so -w watches
+## are workable. On a busy host every append would trip them — there you'd narrow to
+## explicit destructive syscalls (truncate, ftruncate, unlink, unlinkat, rename*).
+
+-w /var/log/auth.log -p wa -k log_tamper
+-w /var/log/syslog -p wa -k log_tamper
+-w /var/log/audit/audit.log -p wa -k log_tamper
+-a always,exit -F dir=/var/log -F perm=wa -F auid>=1000 -F auid!=-1 -F key=log_tamper

@@ -23,6 +23,7 @@ reboot. `auditctl -s` shows `enabled 1` and the current backlog.
 | File | Key(s) | For | Added |
 |---|---|---|---|
 | `50-cron.rules` | `cron_persist`, `cron_exec` | Detection 5 — T1053.003 Cron | 2026-09-08 |
+| `60-logclear.rules` | `log_tamper` | Detection 6 — T1070.002 Clear Logs | 2026-09-08 |
 
 ## Notes / gotchas
 
@@ -40,3 +41,11 @@ reboot. `auditctl -s` shows `enabled 1` and the current backlog.
   record type separately or stitches them on that ID.
 - Rules are **not** set immutable (`-e 2`) on this lab box, so `augenrules --load` can
   reload freely. A hardened host would lock them and require a reboot to change.
+- **Truncating `/var/log/audit/audit.log` while auditd runs doesn't stop auditd** — it
+  holds the file descriptor and keeps writing at its stored offset, so the file goes
+  sparse and then refills. But any records still in auditd's async write buffer at the
+  moment of truncation are lost, and the Splunk forwarder re-reads the file from offset
+  0 on the size change. Detection 6 hit this directly: the first attack run also
+  truncated audit.log and that wiped the on-disk record of the same run's other two log
+  clears. The lesson the repo keeps: the audit log has to be shipped off-box in real
+  time, because whatever is still on disk can be erased.
