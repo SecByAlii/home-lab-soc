@@ -1,0 +1,10 @@
+## T1548.001 — Abuse Elevation Control: Setuid and Setgid
+## Load on victim01 with:
+##   sudo cp 80-privesc.rules /etc/audit/rules.d/ && sudo augenrules --load
+##
+## Logs permission changes by interactive users. aarch64 has no bare `chmod` syscall,
+## so this watches fchmod / fchmodat (what coreutils `chmod` actually calls). The
+## detection checks the requested mode for the setuid (04000) / setgid (02000) bit.
+## The second half of the detection — a process running with euid=0 it wasn't launched
+## with — rides the proc_exec feed from 70-discovery.rules, no extra rule needed.
+-a always,exit -F arch=b64 -S fchmod,fchmodat -F auid>=1000 -F auid!=-1 -F key=perm_mod
