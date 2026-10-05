@@ -1,10 +1,12 @@
 # Home Lab SOC — Detection Engineering Writeup
 
-A single-analyst detection lab: a Splunk SIEM watching a purpose-built Linux victim
-host, eight attacker techniques run against it, and a detection written and tuned for
-each one against the **real logs the attack produced** — not against documentation, not
-against synthetic data. Every detection is mapped to MITRE ATT&CK and ships with the
-false positives it will produce and an honest note on what it doesn't cover.
+A single-analyst detection lab: a Splunk SIEM watching purpose-built Linux and Windows
+victim hosts, fifteen attacker techniques run against them, and a detection written and
+tuned for each one against the **real logs the attack produced** — not against
+documentation, not against synthetic data. Every detection is mapped to MITRE ATT&CK and
+ships with the false positives it will produce and an honest note on what it doesn't cover.
+This writeup walks three Linux detections in depth, then the Windows extension (detections
+9–15) and what it surfaced; every detection is documented in the repo.
 
 Repo: [github.com/SecByAlii/home-lab-soc](https://github.com/SecByAlii/home-lab-soc)
 
@@ -37,19 +39,23 @@ liability — it tells whoever's on call that it's trustworthy when it isn't.
 ## Architecture
 
 ```
-┌─────────────────────┐        Splunk Universal Forwarder         ┌──────────────────────┐
-│   Ubuntu 26.04 VM    │ ──────────────────────────────────────►  │   macOS host          │
-│   victim01 (UTM)     │        auth.log · auditd · syslog         │   Splunk Enterprise    │
-│                      │        shipped in real time (:9997)       │   (free tier)          │
-│  attacks run here    │                                            │   SPL detections       │
-│  auditd rule sets    │                                            │   + dashboards         │
-│  loaded per technique│                                            │                        │
-└─────────────────────┘                                            └──────────────────────┘
+┌─────────────────────┐   UF: auth.log · auditd · syslog ─┐
+│  victim01 (Ubuntu)   │   (real time, :9997)             │
+└─────────────────────┘                                   │   ┌──────────────────────┐
+                                                           ├─► │  macOS host           │
+┌─────────────────────┐   UF: Security · System · Sysmon ─┤   │  Splunk Enterprise    │
+│  win01 (Windows 11)  │   (real time, :9997)             │   │  SPL detections +     │
+└─────────────────────┘                                   ┘   │  one dashboard, both  │
+                                                              └──────────────────────┘
 ```
 
 - **victim01** — Ubuntu Server 26.04 on UTM (ARM-native). Three log sources:
   `/var/log/auth.log` (`linux_secure`), the kernel audit log (`linux_audit`), and
   `/var/log/syslog`.
+- **win01** — Windows 11 Pro ARM64 on UTM, unattended-installed, same network and indexer.
+  Log sources: Security event log, System log, and Sysmon (process, registry,
+  process-access). See the "Extending to Windows" section below and
+  `setup/04-windows-victim.md`.
 - **Forwarding is the point, not a detail.** Logs leave the host the moment they're
   written. Detection 6 (log clearing) demonstrates why: anything still only on disk can
   be erased by an attacker with root, and in one test run it was — the forwarded copy is
@@ -248,11 +254,50 @@ chronological ATT&CK-mapped timeline, coverage counters, and a by-tactic breakdo
 Every panel runs the real macros — the dashboard *is* the detection library and its
 correlation layer, not a separate reporting build.
 
+## Extending to Windows
+
+The first eight detections are Linux. A SOC analyst spends most of their day in Windows
+logs, so the lab was extended with a second victim — `win01`, Windows 11 Pro — on the same
+network and the same Splunk indexer, with seven more detections (9–15). The build notes are
+in [`setup/04-windows-victim.md`](setup/04-windows-victim.md); three things are worth
+pulling out here.
+
+**The same shapes transfer; only the source changes.** Windows brute force (det 9) is the
+rate shape from det 1 with `EventCode=4625` instead of `sshd` lines. New-account (det 10)
+is the rare-event shape from det 2 on `4720`. Clearing the event log (det 14) is det 6's
+twin — and made the same point even harder: after `wevtutil cl Security` wiped the local
+log, the brute-force, new-account, and scheduled-task events were still in Splunk, because
+they'd already been forwarded. Recognising that a technique you've already solved on one
+platform is the *same detection* on another, with a different log underneath, is a large
+part of the job.
+
+**The telemetry has to be turned on first.** Three of the Windows detections only exist
+because of a logging change: `4720` and `4698` need audit subcategories that are off by
+default (`auditpol`), and the registry/process-access detections need Sysmon, whose
+baseline config ships ProcessAccess *disabled*. A detection is only as real as the
+telemetry beneath it, and knowing which switch to flip is the setup that most "just run the
+SPL" writeups skip.
+
+**Detection 15 is the one that didn't fire — and that's the finding.** The LSASS
+credential-dump detection (Sysmon event 10, handle to `lsass.exe` with memory-read rights)
+is the most important technique in the set. When the access was attempted, Windows 11
+*denied it*: this build runs LSASS as a protected process by default, so the dump handle
+returns access-denied and no event is generated. The detection is correct and validated
+(against a stand-in process with the identical access mask), but on a modern, default
+endpoint the attack is stopped at the OS layer before the detection is ever needed. That's
+defense-in-depth, and reporting it honestly — "the control pre-empted the detection" —
+matters more than forcing a green checkmark. The alternative, disabling LSASS protection to
+manufacture a positive, would have weakened the host to make a portfolio look busier; it
+wasn't done.
+
 ## What's next
 
 - Replace the `transaction` session window with a rolling per-actor risk score with
   decay — defeats the "space actions out" evasion a fixed `maxpause` can't.
 - Follow cross-actor pivots (brute-force `analyst` → `su` to another account) with a
   login-chain graph rather than treating them as separate incidents.
-- Add discovery / defense-evasion breadth toward a 10+ technique library.
+- Decode the Base64 in encoded-PowerShell (det 13) at search time, and add PowerShell
+  Script Block Logging (event 4104) for obfuscation Sysmon's command line misses.
+- Join `win01` to a domain to cover domain-account and Kerberos techniques the single-host
+  lab can't reach.
 - Replace snapshot allowlists with first-seen searches over a rolling window.

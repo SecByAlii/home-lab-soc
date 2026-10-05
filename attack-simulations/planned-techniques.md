@@ -1,5 +1,11 @@
 # Planned attack techniques
 
+> **Update:** the first-pass Linux list below is complete (detections 1–8). A second pass
+> added a **Windows victim** (`win01`) with detections **9–15** — brute force, new account,
+> scheduled task, Run-key persistence, encoded PowerShell, event-log clearing, and LSASS
+> access. Those are documented in the numbered `attack-simulations/` and `detections/`
+> files and listed in the README. The list below is kept as the original planning record.
+
 Target list for the first pass — Atomic Red Team tests that (a) run cleanly on Linux,
 (b) generate log evidence in the sources we're actually collecting (auth.log, auditd),
 and (c) map to techniques a real SOC analyst gets tested on.

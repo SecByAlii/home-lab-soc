@@ -1,6 +1,6 @@
 <dashboard theme="dark" version="1.1">
   <label>Home Lab SOC - Detection Overview</label>
-  <description>Eight MITRE ATT&amp;CK techniques run against victim01, each caught by a purpose-built Splunk detection, then correlated into session-level incidents. github.com/SecByAlii/home-lab-soc</description>
+  <description>Fifteen MITRE ATT&amp;CK techniques across a Linux (victim01) and a Windows (win01) victim, each caught by a purpose-built Splunk detection, then correlated into session-level incidents. github.com/SecByAlii/home-lab-soc</description>
 
   <search id="base">
     <query>`soc_detections`</query>
